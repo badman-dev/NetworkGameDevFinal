@@ -32,6 +32,7 @@ public class PlayerController : NetworkBehaviour
     {
 
         Vector2 moveVect = new Vector2(Input.GetAxis("Horizontal") * movementSpeed, Input.GetAxis("Vertical") * movementSpeed);
+        //Vector2 moveVect = new Vector2(Input.GetAxisRaw("Horizontal") * movementSpeed, Input.GetAxisRaw("Vertical") * movementSpeed);
         moveVect = Vector2.ClampMagnitude(moveVect, movementSpeed);
 
         return moveVect;
@@ -58,15 +59,18 @@ public class PlayerController : NetworkBehaviour
 
     private void Update()
     {
-        Vector2 moveVect = CalcPos();
-        float rot = CalcRot();
+        if (IsOwner)
+        {
+            Vector2 moveVect = CalcPos();
+            float rot = CalcRot();
 
-        RequestPositionForMovementServerRpc(moveVect, rot);
+            RequestPositionForMovementServerRpc(moveVect, rot);
+        }
 
         if (!IsOwner || IsHost) //actually moving player
         {
-            body.velocity = moveVect;
-            body.rotation = rot;
+            body.velocity = PositionChange.Value;
+            body.rotation = RotationChange.Value;
         }
     }
 }
