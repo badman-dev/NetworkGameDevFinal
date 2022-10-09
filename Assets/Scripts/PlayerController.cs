@@ -40,6 +40,10 @@ public class PlayerController : NetworkBehaviour
 
     private float CalcRot() //calculating mouse rotate float
     {
+        //manually blocks mouse input when not focused window
+        if (!Application.isFocused)
+            return body.rotation;
+
         Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         Vector2 rotVect = mousePos - transform.position;
 
