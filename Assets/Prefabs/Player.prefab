@@ -169,6 +169,9 @@ MonoBehaviour:
   RotationChange:
     m_InternalValue: 0
   cursorPrefab: {fileID: 719577611146442505, guid: 9636dbc1a70d78e49a7f0525f5d2a01b, type: 3}
+  bulletPrefab: {fileID: 3143086952817280214, guid: 0bd739ac6b6aaba4d987e9d53549b9a1, type: 3}
+  shootPoint: {fileID: 1900783317578941383}
+  bulletSpeed: 40
   movementSpeed: 0.4
 --- !u!1 &3763594410329025210
 GameObject:

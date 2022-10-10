@@ -8,11 +8,15 @@ public class PlayerController : NetworkBehaviour
     public NetworkVariable<Vector2> PositionChange = new NetworkVariable<Vector2>();
     public NetworkVariable<float> RotationChange = new NetworkVariable<float>();
 
-    public GameObject cursorPrefab; //aim, cursor
+    public GameObject cursorPrefab; //aim, curso
+    public Rigidbody2D bulletPrefab;
+    public Transform shootPoint;
+    public float bulletSpeed = 20f;
 
     private Rigidbody2D body;
 
     public float movementSpeed = .4f;
+    public float blowbackScale = 4;
 
     private void Start()
     {
@@ -52,6 +56,14 @@ public class PlayerController : NetworkBehaviour
         return rot;
     }
 
+    private float Blowback(float currentVelocity) //adding gunshot blowback to velocity
+    {
+        Debug.Log("current: " + currentVelocity);
+        float newVelocity = currentVelocity - blowbackScale;
+        Debug.Log("new: " + newVelocity);
+        return newVelocity;
+    }
+
     [ServerRpc]
     private void RequestPositionForMovementServerRpc(Vector2 posChange, float rotChange) //updating network variables on server
     {
@@ -61,12 +73,28 @@ public class PlayerController : NetworkBehaviour
         RotationChange.Value = rotChange;
     }
 
+    [ServerRpc]
+    private void RequestShootBulletServerRpc()
+    {
+        Rigidbody2D newBullet = Instantiate(bulletPrefab, shootPoint.position, shootPoint.rotation);
+        newBullet.velocity = transform.right * bulletSpeed;
+        newBullet.gameObject.GetComponent<NetworkObject>().Spawn();
+
+        Destroy(newBullet.gameObject, 3);
+    }
+
     private void Update()
     {
         if (IsOwner)
         {
             Vector2 moveVect = CalcPos();
             float rot = CalcRot();
+
+            if (Input.GetButtonDown("Fire1"))
+            {
+                RequestShootBulletServerRpc();
+                rot = Blowback(rot);
+            }
 
             RequestPositionForMovementServerRpc(moveVect, rot);
         }
