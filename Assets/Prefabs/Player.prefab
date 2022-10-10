@@ -172,7 +172,8 @@ MonoBehaviour:
   bulletPrefab: {fileID: 3143086952817280214, guid: 0bd739ac6b6aaba4d987e9d53549b9a1, type: 3}
   shootPoint: {fileID: 1900783317578941383}
   bulletSpeed: 40
-  movementSpeed: 0.4
+  movementSpeed: 0.2
+  blowbackScale: 150
 --- !u!1 &3763594410329025210
 GameObject:
   m_ObjectHideFlags: 0

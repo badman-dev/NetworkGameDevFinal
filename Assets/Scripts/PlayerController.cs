@@ -16,7 +16,7 @@ public class PlayerController : NetworkBehaviour
     private Rigidbody2D body;
 
     public float movementSpeed = .4f;
-    public float blowbackScale = 4;
+    public float blowbackScale = 100;
 
     private void Start()
     {
@@ -56,12 +56,11 @@ public class PlayerController : NetworkBehaviour
         return rot;
     }
 
-    private float Blowback(float currentVelocity) //adding gunshot blowback to velocity
+    [ServerRpc]
+    private void RequestBlowbackServerRpc() //gunfire blowback for movement
     {
-        Debug.Log("current: " + currentVelocity);
-        float newVelocity = currentVelocity - blowbackScale;
-        Debug.Log("new: " + newVelocity);
-        return newVelocity;
+        Vector2 velocityForce = -transform.right * blowbackScale;
+        body.AddForce(velocityForce);
     }
 
     [ServerRpc]
@@ -93,7 +92,7 @@ public class PlayerController : NetworkBehaviour
             if (Input.GetButtonDown("Fire1"))
             {
                 RequestShootBulletServerRpc();
-                rot = Blowback(rot);
+                RequestBlowbackServerRpc();
             }
 
             RequestPositionForMovementServerRpc(moveVect, rot);
@@ -101,8 +100,16 @@ public class PlayerController : NetworkBehaviour
 
         if (!IsOwner || IsHost) //actually moving player
         {
-            body.velocity = PositionChange.Value;
             body.rotation = RotationChange.Value;
+        }
+    }
+
+    private void FixedUpdate()
+    {
+        if (!IsOwner || IsHost) //actually moving player
+        {
+            //body.velocity = PositionChange.Value; //this doesn't work with the bullet addforce but was consistent in speed
+            body.AddForce(PositionChange.Value); //somewhat exponential speed increase wasd
         }
     }
 }
