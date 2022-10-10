@@ -8,11 +8,15 @@ public class PlayerController : NetworkBehaviour
     public NetworkVariable<Vector2> PositionChange = new NetworkVariable<Vector2>();
     public NetworkVariable<float> RotationChange = new NetworkVariable<float>();
 
-    public GameObject cursorPrefab; //aim, cursor
+    public GameObject cursorPrefab; //aim, curso
+    public Rigidbody2D bulletPrefab;
+    public Transform shootPoint;
+    public float bulletSpeed = 20f;
 
     private Rigidbody2D body;
 
     public float movementSpeed = .4f;
+    public float blowbackScale = 100;
 
     private void Start()
     {
@@ -53,12 +57,29 @@ public class PlayerController : NetworkBehaviour
     }
 
     [ServerRpc]
+    private void RequestBlowbackServerRpc() //gunfire blowback for movement
+    {
+        Vector2 velocityForce = -transform.right * blowbackScale;
+        body.AddForce(velocityForce);
+    }
+
+    [ServerRpc]
     private void RequestPositionForMovementServerRpc(Vector2 posChange, float rotChange) //updating network variables on server
     {
         if (!IsServer && !IsHost) return;
 
         PositionChange.Value = posChange;
         RotationChange.Value = rotChange;
+    }
+
+    [ServerRpc]
+    private void RequestShootBulletServerRpc()
+    {
+        Rigidbody2D newBullet = Instantiate(bulletPrefab, shootPoint.position, shootPoint.rotation);
+        newBullet.velocity = transform.right * bulletSpeed;
+        newBullet.gameObject.GetComponent<NetworkObject>().Spawn();
+
+        Destroy(newBullet.gameObject, 3);
     }
 
     private void Update()
@@ -68,13 +89,27 @@ public class PlayerController : NetworkBehaviour
             Vector2 moveVect = CalcPos();
             float rot = CalcRot();
 
+            if (Input.GetButtonDown("Fire1"))
+            {
+                RequestShootBulletServerRpc();
+                RequestBlowbackServerRpc();
+            }
+
             RequestPositionForMovementServerRpc(moveVect, rot);
         }
 
         if (!IsOwner || IsHost) //actually moving player
         {
-            body.velocity = PositionChange.Value;
             body.rotation = RotationChange.Value;
+        }
+    }
+
+    private void FixedUpdate()
+    {
+        if (!IsOwner || IsHost) //actually moving player
+        {
+            //body.velocity = PositionChange.Value; //this doesn't work with the bullet addforce but was consistent in speed
+            body.AddForce(PositionChange.Value); //somewhat exponential speed increase wasd
         }
     }
 }
