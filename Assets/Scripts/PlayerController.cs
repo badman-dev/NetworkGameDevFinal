@@ -3,8 +3,35 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 
+//https://github.com/Ajackster/ClientPredictionTutorial/tree/master/Assets/Scripts
+public struct InputPayload
+{
+    public int tick;
+    public Vector3 inputVector;
+}
+
+public struct StatePayload
+{
+    public int tick;
+    public Vector3 position;
+}
+
 public class PlayerController : NetworkBehaviour
 {
+    private float timer;
+    private int currentTick;
+    private float minTimeBetweenTicks;
+    private const float SERVER_TICK_RATE = 30f;
+    private const int BUFFER_SIZE = 1024;
+
+    private StatePayload[] clientStateBuffer;
+    private InputPayload[] clientInputBuffer;
+    private StatePayload clientLatestServerState;
+    private StatePayload clientLastProcessedState;
+
+    private StatePayload[] serverStateBuffer;
+    private Queue<InputPayload> serverInputQueue;
+
     public NetworkVariable<Vector2> PositionChange = new NetworkVariable<Vector2>();
     public NetworkVariable<float> RotationChange = new NetworkVariable<float>();
 
@@ -21,6 +48,14 @@ public class PlayerController : NetworkBehaviour
     private void Start()
     {
         body = GetComponent<Rigidbody2D>();
+
+        minTimeBetweenTicks = 1f / SERVER_TICK_RATE;
+
+        clientStateBuffer = new StatePayload[BUFFER_SIZE];
+        clientInputBuffer = new InputPayload[BUFFER_SIZE];
+
+        serverStateBuffer = new StatePayload[BUFFER_SIZE];
+        serverInputQueue = new Queue<InputPayload>();
     }
 
     public override void OnNetworkSpawn()
@@ -98,9 +133,18 @@ public class PlayerController : NetworkBehaviour
             RequestPositionForMovementServerRpc(moveVect, rot);
         }
 
-        if (!IsOwner || IsHost) //actually moving player
+        if (!IsOwner || IsHost) //actually rotating player
         {
             body.rotation = RotationChange.Value;
+        }
+
+        timer += Time.deltaTime;
+
+        while (timer >= minTimeBetweenTicks)
+        {
+            timer -= minTimeBetweenTicks;
+            HandleTick();
+            currentTick++;
         }
     }
 
@@ -111,5 +155,14 @@ public class PlayerController : NetworkBehaviour
             //body.velocity = PositionChange.Value; //this doesn't work with the bullet addforce but was consistent in speed
             body.AddForce(PositionChange.Value); //somewhat exponential speed increase wasd
         }
+        else if (IsOwner)
+        {
+
+        }
+    }
+
+    private void HandleTick()
+    {
+
     }
 }
