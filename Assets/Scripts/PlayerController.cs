@@ -8,6 +8,8 @@ public class PlayerController : NetworkBehaviour
     public NetworkVariable<Vector2> PositionChange = new NetworkVariable<Vector2>();
     public NetworkVariable<float> RotationChange = new NetworkVariable<float>();
 
+    public NetworkVariable<int> Health = new NetworkVariable<int>(1);
+
     public GameObject cursorPrefab; //aim, curso
     public Rigidbody2D bulletPrefab;
     public Transform shootPoint;
@@ -29,6 +31,20 @@ public class PlayerController : NetworkBehaviour
         {
             //spawn aim cursor locally
             Instantiate(cursorPrefab, new Vector3(0, 0, 0), Quaternion.identity);
+        }
+    }
+
+    private void Damage(int dmg)
+    {
+        Health.Value -= dmg;
+        HealthCheck();
+    }
+
+    private void HealthCheck()
+    {
+        if (Health.Value <= 0)
+        {
+            Destroy(gameObject);
         }
     }
 
@@ -56,6 +72,20 @@ public class PlayerController : NetworkBehaviour
         return rot;
     }
 
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (!IsHost || !IsServer) { return; }
+
+        GameObject source = collision.gameObject;
+
+        //check if other player's bullet OR other kind of damage source
+        if ((source.CompareTag("Bullet") && source.GetComponent<NetworkObject>().OwnerClientId != gameObject.GetComponent<NetworkObject>().OwnerClientId) ||
+            (!source.CompareTag("Bullet") && source.GetComponent<DamageSource>()))
+        {
+            Damage(source.GetComponent<DamageSource>().damage);
+        }
+    }
+
     [ServerRpc]
     private void RequestBlowbackServerRpc() //gunfire blowback for movement
     {
@@ -73,11 +103,11 @@ public class PlayerController : NetworkBehaviour
     }
 
     [ServerRpc]
-    private void RequestShootBulletServerRpc()
+    private void RequestShootBulletServerRpc(ServerRpcParams rpcParams = default)
     {
         Rigidbody2D newBullet = Instantiate(bulletPrefab, shootPoint.position, shootPoint.rotation);
         newBullet.velocity = transform.right * bulletSpeed;
-        newBullet.gameObject.GetComponent<NetworkObject>().Spawn();
+        newBullet.gameObject.GetComponent<NetworkObject>().SpawnWithOwnership(rpcParams.Receive.SenderClientId);
 
         Destroy(newBullet.gameObject, 3);
     }
