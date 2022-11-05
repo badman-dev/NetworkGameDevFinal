@@ -113,9 +113,9 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingLayerID: -1861806709
+  m_SortingLayer: 1
+  m_SortingOrder: 1
   m_Sprite: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
@@ -185,10 +185,12 @@ MonoBehaviour:
     m_InternalValue: {x: 0, y: 0}
   RotationChange:
     m_InternalValue: 0
+  Health:
+    m_InternalValue: 1
   cursorPrefab: {fileID: 719577611146442505, guid: 9636dbc1a70d78e49a7f0525f5d2a01b, type: 3}
   bulletPrefab: {fileID: 3143086952817280214, guid: 0bd739ac6b6aaba4d987e9d53549b9a1, type: 3}
   shootPoint: {fileID: 1900783317578941383}
-  bulletSpeed: 40
+  bulletSpeed: 30
   movementSpeed: 0.2
   blowbackScale: 150
 --- !u!1 &3763594410329025210
@@ -261,8 +263,8 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
+  m_SortingLayerID: -1861806709
+  m_SortingLayer: 1
   m_SortingOrder: 0
   m_Sprite: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
   m_Color: {r: 0, g: 0, b: 0, a: 1}

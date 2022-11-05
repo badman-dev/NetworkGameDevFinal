@@ -8,6 +8,8 @@ public class PlayerController : NetworkBehaviour
     public NetworkVariable<Vector2> PositionChange = new NetworkVariable<Vector2>();
     public NetworkVariable<float> RotationChange = new NetworkVariable<float>();
 
+    public NetworkVariable<int> Health = new NetworkVariable<int>(1);
+
     public GameObject cursorPrefab; //aim, curso
     public Rigidbody2D bulletPrefab;
     public Transform shootPoint;
@@ -32,9 +34,18 @@ public class PlayerController : NetworkBehaviour
         }
     }
 
-    private void Die()
+    private void Damage(int dmg)
     {
-        Destroy(gameObject);
+        Health.Value -= dmg;
+        HealthCheck();
+    }
+
+    private void HealthCheck()
+    {
+        if (Health.Value <= 0)
+        {
+            Destroy(gameObject);
+        }
     }
 
     private Vector2 CalcPos() //calculating wasd movement vector
@@ -65,10 +76,13 @@ public class PlayerController : NetworkBehaviour
     {
         if (!IsHost || !IsServer) { return; }
 
-        GameObject bullet = collision.gameObject;
+        GameObject source = collision.gameObject;
 
-        if (bullet.CompareTag("Bullet") && bullet.GetComponent<NetworkObject>().OwnerClientId != gameObject.GetComponent<NetworkObject>().OwnerClientId) {
-            Die();
+        //check if other player's bullet OR other kind of damage source
+        if ((source.CompareTag("Bullet") && source.GetComponent<NetworkObject>().OwnerClientId != gameObject.GetComponent<NetworkObject>().OwnerClientId) ||
+            (!source.CompareTag("Bullet") && source.GetComponent<DamageSource>()))
+        {
+            Damage(source.GetComponent<DamageSource>().damage);
         }
     }
 
