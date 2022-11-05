@@ -32,6 +32,11 @@ public class PlayerController : NetworkBehaviour
         }
     }
 
+    private void Die()
+    {
+        Destroy(gameObject);
+    }
+
     private Vector2 CalcPos() //calculating wasd movement vector
     {
 
@@ -56,6 +61,17 @@ public class PlayerController : NetworkBehaviour
         return rot;
     }
 
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (!IsHost || !IsServer) { return; }
+
+        GameObject bullet = collision.gameObject;
+
+        if (bullet.CompareTag("Bullet") && bullet.GetComponent<NetworkObject>().OwnerClientId != gameObject.GetComponent<NetworkObject>().OwnerClientId) {
+            Die();
+        }
+    }
+
     [ServerRpc]
     private void RequestBlowbackServerRpc() //gunfire blowback for movement
     {
@@ -73,11 +89,11 @@ public class PlayerController : NetworkBehaviour
     }
 
     [ServerRpc]
-    private void RequestShootBulletServerRpc()
+    private void RequestShootBulletServerRpc(ServerRpcParams rpcParams = default)
     {
         Rigidbody2D newBullet = Instantiate(bulletPrefab, shootPoint.position, shootPoint.rotation);
         newBullet.velocity = transform.right * bulletSpeed;
-        newBullet.gameObject.GetComponent<NetworkObject>().Spawn();
+        newBullet.gameObject.GetComponent<NetworkObject>().SpawnWithOwnership(rpcParams.Receive.SenderClientId);
 
         Destroy(newBullet.gameObject, 3);
     }
