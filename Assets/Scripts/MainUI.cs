@@ -10,7 +10,10 @@ public class MainUI : NetworkBehaviour
     public Button btnClient;
     public TMPro.TMP_Text txtStatus;
 
-    //private string startText = "";
+    private string startText = "";
+    private int count = 0;
+    private float timer = 0f;
+    private bool isLoading = false;
 
     public void Start()
     {
@@ -21,7 +24,7 @@ public class MainUI : NetworkBehaviour
     private void StartHost()
     {
         NetworkManager.Singleton.StartHost();
-        //NetworkManager.SceneManager.LoadScene("Lobby", UnityEngine.SceneManagement.LoadSceneMode.Single);
+        NetworkManager.SceneManager.LoadScene("Lobby", UnityEngine.SceneManagement.LoadSceneMode.Single);
     }
 
 
@@ -30,7 +33,8 @@ public class MainUI : NetworkBehaviour
     {
         btnClient.gameObject.SetActive(false);
         btnHost.gameObject.SetActive(false);
-        txtStatus.text = "Starting Server...";
+        startText = "Starting Server";
+        isLoading = true;
         StartHost();
     }
 
@@ -38,28 +42,30 @@ public class MainUI : NetworkBehaviour
     {
         btnClient.gameObject.SetActive(false);
         btnHost.gameObject.SetActive(false);
-        txtStatus.text = "Searching for game...";
+        startText = "Searching for game";
+        isLoading = true;
         NetworkManager.Singleton.StartClient();
     }
 
-    //private void Update()
-    //{
-    //    float timer = 0f;
-    //    int count = 0;
-    //    timer += Time.deltaTime;
-    //    if (timer >= .25f)
-    //    {
-    //        timer = 0f;
-    //        if (count >= 2)
-    //        {
-    //            txtStatus.text = startText;
-    //            count = 0;
-    //        }
-    //        else
-    //        {
-    //            txtStatus.text += ".";
-    //            count++;
-    //        }
-    //    }
-    //}
+    private void Update()
+    {
+        if (isLoading)
+        {
+            timer += Time.deltaTime;
+            if (timer >= .25f)
+            {
+                timer = 0f;
+                if (count >= 3)
+                {
+                    txtStatus.text = startText;
+                    count = 0;
+                }
+                else
+                {
+                    txtStatus.text = txtStatus.text + ".";
+                    count++;
+                }
+            }
+        }
+    }
 }
