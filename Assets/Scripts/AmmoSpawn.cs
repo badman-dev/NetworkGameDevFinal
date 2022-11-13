@@ -12,6 +12,12 @@ public class AmmoSpawn : NetworkBehaviour
     private GameObject ammoPickup;
     public TextMeshPro countdownText;
 
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = new Color(1, 0, 0, 0.5f);
+        Gizmos.DrawCube(transform.position, new Vector3(0.375f, 0.375f, 0.375f));
+    }
+
     public override void OnNetworkSpawn()
     {
         if (IsServer)
