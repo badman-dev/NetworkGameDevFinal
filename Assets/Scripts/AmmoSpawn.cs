@@ -29,9 +29,6 @@ public class AmmoSpawn : NetworkBehaviour
     public IEnumerator SpawnCountdown()
     {
         //despawning old pickup since it's been "picked up"
-        //AmmoPickup oldAmmoPickup = GetComponentInChildren(typeof(AmmoPickup)) as AmmoPickup;
-        //oldAmmoPickup.gameObject.GetComponent<NetworkObject>().Despawn();
-        //Destroy(oldAmmoPickup);
         ammoPickup.GetComponent<NetworkObject>().Despawn();
         Destroy(ammoPickup);
 

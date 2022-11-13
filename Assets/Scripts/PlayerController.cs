@@ -135,19 +135,6 @@ public class PlayerController : NetworkBehaviour
         Destroy(newBullet.gameObject, 3);
     }
 
-    [ServerRpc]
-    public void RequestAddAmmoServerRpc(int ammo)
-    {
-        if (Ammo.Value + ammo >= maxAmmo)
-        {
-            Ammo.Value = maxAmmo;
-        }
-        else
-        {
-            Ammo.Value += ammo;
-        }
-    }
-
     private void Update()
     {
         if (IsOwner)
