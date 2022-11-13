@@ -10,6 +10,8 @@ public class PlayerController : NetworkBehaviour
 
     public NetworkVariable<int> Health = new NetworkVariable<int>(1);
 
+    public NetworkVariable<int> Ammo = new NetworkVariable<int>(10);
+
     public GameObject cursorPrefab; //aim, curso
     public Rigidbody2D bulletPrefab;
     public Transform shootPoint;
@@ -19,6 +21,8 @@ public class PlayerController : NetworkBehaviour
 
     public float movementSpeed = .4f;
     public float blowbackScale = 100;
+
+    public int maxAmmo = 10;
 
     private void Start()
     {
@@ -31,6 +35,11 @@ public class PlayerController : NetworkBehaviour
         {
             //spawn aim cursor locally
             Instantiate(cursorPrefab, new Vector3(0, 0, 0), Quaternion.identity);
+        }
+
+        if (IsServer)
+        {
+            AddAmmo(maxAmmo);
         }
     }
 
@@ -45,6 +54,18 @@ public class PlayerController : NetworkBehaviour
         if (Health.Value <= 0)
         {
             Destroy(gameObject);
+        }
+    }
+
+    public void AddAmmo(int ammo)
+    {
+        if (Ammo.Value + ammo >= maxAmmo)
+        {
+            Ammo.Value = maxAmmo;
+        }
+        else
+        {
+            Ammo.Value += ammo;
         }
     }
 
@@ -109,7 +130,22 @@ public class PlayerController : NetworkBehaviour
         newBullet.velocity = transform.right * bulletSpeed;
         newBullet.gameObject.GetComponent<NetworkObject>().SpawnWithOwnership(rpcParams.Receive.SenderClientId);
 
+        Ammo.Value -= 1;
+
         Destroy(newBullet.gameObject, 3);
+    }
+
+    [ServerRpc]
+    public void RequestAddAmmoServerRpc(int ammo)
+    {
+        if (Ammo.Value + ammo >= maxAmmo)
+        {
+            Ammo.Value = maxAmmo;
+        }
+        else
+        {
+            Ammo.Value += ammo;
+        }
     }
 
     private void Update()
@@ -119,7 +155,7 @@ public class PlayerController : NetworkBehaviour
             Vector2 moveVect = CalcPos();
             float rot = CalcRot();
 
-            if (Input.GetButtonDown("Fire1"))
+            if (Input.GetButtonDown("Fire1") && Ammo.Value > 0)
             {
                 RequestShootBulletServerRpc();
                 RequestBlowbackServerRpc();
