@@ -23,6 +23,6 @@ public class AmmoPickup : NetworkBehaviour
             collision.gameObject.GetComponent<PlayerController>().AddAmmo(ammoValue);
         }
 
-        StartCoroutine(spawn.SpawnCountdown());
+        spawn.StartCountdown();
     }
 }

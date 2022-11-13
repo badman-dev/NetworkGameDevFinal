@@ -2,13 +2,15 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
+using TMPro;
 
 public class AmmoSpawn : NetworkBehaviour
 {
     public GameObject ammoPickupPrefab;
-    public float countDownTime = 10;
+    public int countdownTime = 6;
 
     private GameObject ammoPickup;
+    public TextMeshPro countdownText;
 
     public override void OnNetworkSpawn()
     {
@@ -21,9 +23,26 @@ public class AmmoSpawn : NetworkBehaviour
     [ServerRpc]
     private void SpawnAmmoServerRpc()
     {
-        ammoPickup = Instantiate(ammoPickupPrefab, Vector3.zero, Quaternion.identity);
+        ammoPickup = Instantiate(ammoPickupPrefab, transform.position, Quaternion.identity);
         ammoPickup.GetComponent<NetworkObject>().Spawn();
         ammoPickup.GetComponent<AmmoPickup>().SetSpawnRelation(gameObject.GetComponent<AmmoSpawn>());
+    }
+
+    [ClientRpc]
+    private void UpdateCountdownDisplayClientRpc(int current)
+    {
+        countdownText.text = current.ToString();
+    }
+
+    [ClientRpc]
+    private void ToggleCountdownDisplayClientRpc(bool enabled)
+    {
+        countdownText.enabled = enabled;
+    }
+
+    public void StartCountdown()
+    {
+        StartCoroutine(SpawnCountdown());
     }
 
     public IEnumerator SpawnCountdown()
@@ -32,16 +51,19 @@ public class AmmoSpawn : NetworkBehaviour
         ammoPickup.GetComponent<NetworkObject>().Despawn();
         Destroy(ammoPickup);
 
-        Debug.Log("starting countdown");
-        yield return new WaitForSeconds(countDownTime);
+        //handling countdown
+        int currentTime = countdownTime;
+        ToggleCountdownDisplayClientRpc(true);
+        UpdateCountdownDisplayClientRpc(currentTime);
+        while (currentTime > 0)
+        {
+            yield return new WaitForSeconds(1f);
+            currentTime -= 1;
+            UpdateCountdownDisplayClientRpc(currentTime);
+        }
+        ToggleCountdownDisplayClientRpc(false);
 
-        Debug.Log("finished countdown");
-
+        //spawning ammo after countdown
         SpawnAmmoServerRpc();
-
-        //while (countDownTimer > 0)
-        //{
-        //    yield return new WaitForSeconds(1);
-        //}
     }
 }
