@@ -61,7 +61,7 @@ public class LobbyManager : NetworkBehaviour
     public void BtnStartClicked()
     {
         if (IsHost)
-            NetworkManager.SceneManager.LoadScene("ChrisTest", UnityEngine.SceneManagement.LoadSceneMode.Single);
+            NetworkManager.SceneManager.LoadScene("Arena1", UnityEngine.SceneManagement.LoadSceneMode.Single);
     }
 
     //Events
