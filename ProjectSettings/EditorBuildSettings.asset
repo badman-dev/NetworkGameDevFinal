@@ -11,4 +11,13 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/ChrisTest.unity
     guid: 8c9cfa26abfee488c85f1582747f6a02
+  - enabled: 1
+    path: Assets/Scenes/MainMenu.unity
+    guid: d17c00aac88ede44ead4e00e27f324dd
+  - enabled: 1
+    path: Assets/Scenes/Lobby.unity
+    guid: 13ee4193aca33e64c935a57ed4c6e3dc
+  - enabled: 1
+    path: Assets/Scenes/Arena1.unity
+    guid: a6804be2d77e7314b8bd531fc99c3307
   m_configObjects: {}
