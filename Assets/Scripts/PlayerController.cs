@@ -12,6 +12,8 @@ public class PlayerController : NetworkBehaviour
 
     public NetworkVariable<int> Ammo = new NetworkVariable<int>(10);
 
+    private GameManager gm;
+
     public GameObject cursorPrefab; //aim, curso
     public Rigidbody2D bulletPrefab;
     public Transform shootPoint;
@@ -41,6 +43,8 @@ public class PlayerController : NetworkBehaviour
         {
             AddAmmo(maxAmmo);
         }
+
+        gm = FindObjectOfType<GameManager>();
     }
 
     private void Damage(int dmg)
@@ -53,7 +57,10 @@ public class PlayerController : NetworkBehaviour
     {
         if (Health.Value <= 0)
         {
-            Destroy(gameObject);
+            gm.CheckEndGameClientRpc();
+            //Destroy(gameObject);
+
+            DieClientRpc();
         }
     }
 
@@ -71,7 +78,6 @@ public class PlayerController : NetworkBehaviour
 
     private Vector2 CalcPos() //calculating wasd movement vector
     {
-
         Vector2 moveVect = new Vector2(Input.GetAxis("Horizontal") * movementSpeed, Input.GetAxis("Vertical") * movementSpeed);
         //Vector2 moveVect = new Vector2(Input.GetAxisRaw("Horizontal") * movementSpeed, Input.GetAxisRaw("Vertical") * movementSpeed);
         moveVect = Vector2.ClampMagnitude(moveVect, movementSpeed);
@@ -135,9 +141,31 @@ public class PlayerController : NetworkBehaviour
         Destroy(newBullet.gameObject, 3);
     }
 
+    [ClientRpc]
+    private void DieClientRpc()
+    {
+        Renderer[] renderers = GetComponentsInChildren<Renderer>();
+        foreach(Renderer r in renderers)
+        {
+            r.enabled = false;
+        }
+
+        Collider[] colliders = GetComponentsInChildren<Collider>();
+        foreach(Collider c in colliders)
+        {
+            c.enabled = false;
+        }
+
+        Canvas[] canvases = GetComponentsInChildren<Canvas>();
+        foreach(Canvas c in canvases)
+        {
+            c.enabled = false;
+        }
+    }
+
     private void Update()
     {
-        if (IsOwner)
+        if (IsOwner && Health.Value > 0)
         {
             Vector2 moveVect = CalcPos();
             float rot = CalcRot();
