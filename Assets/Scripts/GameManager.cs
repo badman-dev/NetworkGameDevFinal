@@ -64,9 +64,22 @@ public class GameManager : NetworkBehaviour
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void CheckEndGameServerRpc()
+    public void CheckEndGameServerRpc() //called from a player whenever their health changes. checks if only one living player and then starts end game process if true
     {
         PlayerController[] players = FindObjectsOfType<PlayerController>();
+
+        int playersAlive = 0;
+        foreach (PlayerController player in players)
+        {
+            if (player.Health.Value > 0)
+            {
+                playersAlive++;
+                if (playersAlive > 1)
+                {
+                    return;
+                }
+            }
+        }
 
         foreach (PlayerController player in players)
         {
@@ -86,15 +99,11 @@ public class GameManager : NetworkBehaviour
 
             StartEndGameClientRpc(didWin, clientRpcParams);
         }
-
-        StartCoroutine(EndCountdown());
     }
 
     [ClientRpc]
-    private void StartEndGameClientRpc(bool didWin, ClientRpcParams clientRpcParams = default)
+    private void StartEndGameClientRpc(bool didWin, ClientRpcParams clientRpcParams = default) //handles text updating and starts the countdown coroutine
     {
-        Debug.Log(didWin);
-
         endText.enabled = true;
         if (didWin)
         {
@@ -105,11 +114,12 @@ public class GameManager : NetworkBehaviour
             endText.text = "You loose!";
         }
 
+        //this is currently run everywhere but the endgame only actually happens on host. this would allow a visible countdown for everyone if we add that
         StartCoroutine(EndCountdown());
     }
 
     [ServerRpc]
-    private void EndGameServerRpc()
+    private void EndGameServerRpc() //moves back to lobby scene at the end of the EndCountdown coroutine
     {
         NetworkObject[] netObjects = FindObjectsOfType<NetworkObject>();
         foreach (NetworkObject netObject in netObjects)
@@ -120,7 +130,7 @@ public class GameManager : NetworkBehaviour
         NetworkManager.SceneManager.LoadScene("Lobby", UnityEngine.SceneManagement.LoadSceneMode.Single);
     }
 
-    public IEnumerator EndCountdown()
+    public IEnumerator EndCountdown() //creates a countdown time in which the end game text is displayed for a bit before returning to lobby
     {
         //handling countdown
         int currentTime = endCountdownTime;
