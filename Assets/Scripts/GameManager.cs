@@ -111,6 +111,12 @@ public class GameManager : NetworkBehaviour
     [ServerRpc]
     private void EndGameServerRpc()
     {
+        NetworkObject[] netObjects = FindObjectsOfType<NetworkObject>();
+        foreach (NetworkObject netObject in netObjects)
+        {
+            Destroy(netObject.gameObject);
+        }
+
         NetworkManager.SceneManager.LoadScene("Lobby", UnityEngine.SceneManagement.LoadSceneMode.Single);
     }
 
