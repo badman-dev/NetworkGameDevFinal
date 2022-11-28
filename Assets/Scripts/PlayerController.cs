@@ -57,8 +57,7 @@ public class PlayerController : NetworkBehaviour
     {
         if (Health.Value <= 0)
         {
-            gm.CheckEndGameClientRpc();
-            //Destroy(gameObject);
+            gm.CheckEndGameServerRpc();
 
             DieClientRpc();
         }

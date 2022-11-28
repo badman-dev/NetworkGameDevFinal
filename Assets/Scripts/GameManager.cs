@@ -15,8 +15,6 @@ public class GameManager : NetworkBehaviour
     private int spawnIndex = 0;
     private List<Transform> availableSpawnPositions = new List<Transform>();
 
-    private List<PlayerController> playerList = new List<PlayerController>();
-
     public void Awake()
     {
         RefreshSpawnPoints();
@@ -62,87 +60,53 @@ public class GameManager : NetworkBehaviour
         {
             GameObject playerInst = Instantiate(playerPrefab, GetNextSpawnLocation(), Quaternion.identity);
             playerInst.GetComponent<NetworkObject>().SpawnAsPlayerObject(cid);
-
-            //playerList.Add(playerInst.GetComponent<PlayerController>());
-            //AddPlayerListClientRpc(playerInst.GetComponent<PlayerController>());
         }
     }
 
-    //[ClientRpc]
-    //private void AddPlayerListClientRpc(PlayerController player)
-    //{
-    //    if (IsServer) { return; }
-
-    //    playerList.Add(player);
-    //}
-
-    [ClientRpc]
-    public void CheckEndGameClientRpc()
+    [ServerRpc(RequireOwnership = false)]
+    public void CheckEndGameServerRpc()
     {
         PlayerController[] players = FindObjectsOfType<PlayerController>();
 
-        //int aliveCount = 0;
-        //foreach (PlayerController player in players)
-        //{
-        //    if (player.Health.Value > 0)
-        //    {
-        //        aliveCount++;
-                
-        //        if (aliveCount > 1) { return; }
-        //    }
-        //}
-
-        endText.enabled = true;
-
-        Debug.Log("My ID: " + NetworkManager.Singleton.LocalClientId);
-        //int myHealth = GetPlayerHealthServerRpc(players, NetworkManager.Singleton.LocalClientId);
-
-        //if (myHealth > 0)
-        //{
-        //    endText.text = "You win!";
-        //}
-        //else
-        //{
-        //    endText.text = "You loose!";
-        //}
         foreach (PlayerController player in players)
         {
-            //Debug.Log(player.gameObject.name);
-
-            if (player.gameObject.GetComponent<NetworkObject>().OwnerClientId ==
-                NetworkManager.Singleton.LocalClientId)
+            bool didWin = false;
+            if (player.Health.Value > 0)
             {
-                Debug.Log(player.gameObject.GetComponent<NetworkObject>().OwnerClientId);
-                Debug.Log("Health: " + player.Health.Value);
-                if (player.Health.Value > 0)
-                {
-                    endText.text = "You win!";
-                }
-                else
-                {
-                    endText.text = "You loose!";
-                }
-                break;
+                didWin = true;
             }
+
+            ClientRpcParams clientRpcParams = new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = new ulong[] { player.gameObject.GetComponent<NetworkObject>().OwnerClientId }
+                }
+            };
+
+            StartEndGameClientRpc(didWin, clientRpcParams);
         }
 
         StartCoroutine(EndCountdown());
     }
 
-    //[ServerRpc]
-    //private int GetPlayerHealthServerRpc(PlayerController[] players, ulong clientId)
-    //{
-    //    foreach(PlayerController player in players)
-    //    {
-    //        if (player.gameObject.GetComponent<NetworkObject>().OwnerClientId == clientId)
-    //        {
-    //            Debug.Log("This player's health is " + player.Health.Value);
-    //            return player.Health.Value;
-    //        }
-    //    }
+    [ClientRpc]
+    private void StartEndGameClientRpc(bool didWin, ClientRpcParams clientRpcParams = default)
+    {
+        Debug.Log(didWin);
 
-    //    return -1;
-    //}
+        endText.enabled = true;
+        if (didWin)
+        {
+            endText.text = "You win!";
+        }
+        else
+        {
+            endText.text = "You loose!";
+        }
+
+        StartCoroutine(EndCountdown());
+    }
 
     [ServerRpc]
     private void EndGameServerRpc()
@@ -161,6 +125,9 @@ public class GameManager : NetworkBehaviour
             currentTime -= 1;
         }
 
-        EndGameServerRpc();
+        if (IsHost)
+        {
+            EndGameServerRpc();
+        }
     }
 }
