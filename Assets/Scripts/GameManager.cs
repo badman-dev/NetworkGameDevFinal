@@ -15,8 +15,6 @@ public class GameManager : NetworkBehaviour
     private int spawnIndex = 0;
     private List<Transform> availableSpawnPositions = new List<Transform>();
 
-    private List<PlayerController> playerList = new List<PlayerController>();
-
     public void Awake()
     {
         RefreshSpawnPoints();
@@ -62,95 +60,77 @@ public class GameManager : NetworkBehaviour
         {
             GameObject playerInst = Instantiate(playerPrefab, GetNextSpawnLocation(), Quaternion.identity);
             playerInst.GetComponent<NetworkObject>().SpawnAsPlayerObject(cid);
-
-            //playerList.Add(playerInst.GetComponent<PlayerController>());
-            //AddPlayerListClientRpc(playerInst.GetComponent<PlayerController>());
         }
     }
 
-    //[ClientRpc]
-    //private void AddPlayerListClientRpc(PlayerController player)
-    //{
-    //    if (IsServer) { return; }
-
-    //    playerList.Add(player);
-    //}
-
-    [ClientRpc]
-    public void CheckEndGameClientRpc()
+    [ServerRpc(RequireOwnership = false)]
+    public void CheckEndGameServerRpc() //called from a player whenever their health changes. checks if only one living player and then starts end game process if true
     {
         PlayerController[] players = FindObjectsOfType<PlayerController>();
 
-        //int aliveCount = 0;
-        //foreach (PlayerController player in players)
-        //{
-        //    if (player.Health.Value > 0)
-        //    {
-        //        aliveCount++;
-                
-        //        if (aliveCount > 1) { return; }
-        //    }
-        //}
-
-        endText.enabled = true;
-
-        Debug.Log("My ID: " + NetworkManager.Singleton.LocalClientId);
-        //int myHealth = GetPlayerHealthServerRpc(players, NetworkManager.Singleton.LocalClientId);
-
-        //if (myHealth > 0)
-        //{
-        //    endText.text = "You win!";
-        //}
-        //else
-        //{
-        //    endText.text = "You loose!";
-        //}
+        int playersAlive = 0;
         foreach (PlayerController player in players)
         {
-            //Debug.Log(player.gameObject.name);
-
-            if (player.gameObject.GetComponent<NetworkObject>().OwnerClientId ==
-                NetworkManager.Singleton.LocalClientId)
+            if (player.Health.Value > 0)
             {
-                Debug.Log(player.gameObject.GetComponent<NetworkObject>().OwnerClientId);
-                Debug.Log("Health: " + player.Health.Value);
-                if (player.Health.Value > 0)
+                playersAlive++;
+                if (playersAlive > 1)
                 {
-                    endText.text = "You win!";
+                    return;
                 }
-                else
-                {
-                    endText.text = "You loose!";
-                }
-                break;
             }
         }
 
+        foreach (PlayerController player in players)
+        {
+            bool didWin = false;
+            if (player.Health.Value > 0)
+            {
+                didWin = true;
+            }
+
+            ClientRpcParams clientRpcParams = new ClientRpcParams
+            {
+                Send = new ClientRpcSendParams
+                {
+                    TargetClientIds = new ulong[] { player.gameObject.GetComponent<NetworkObject>().OwnerClientId }
+                }
+            };
+
+            StartEndGameClientRpc(didWin, clientRpcParams);
+        }
+    }
+
+    [ClientRpc]
+    private void StartEndGameClientRpc(bool didWin, ClientRpcParams clientRpcParams = default) //handles text updating and starts the countdown coroutine
+    {
+        endText.enabled = true;
+        if (didWin)
+        {
+            endText.text = "You win!";
+        }
+        else
+        {
+            endText.text = "You loose!";
+        }
+
+        //this is currently run everywhere but the endgame only actually happens on host. this would allow a visible countdown for everyone if we add that
         StartCoroutine(EndCountdown());
     }
 
-    //[ServerRpc]
-    //private int GetPlayerHealthServerRpc(PlayerController[] players, ulong clientId)
-    //{
-    //    foreach(PlayerController player in players)
-    //    {
-    //        if (player.gameObject.GetComponent<NetworkObject>().OwnerClientId == clientId)
-    //        {
-    //            Debug.Log("This player's health is " + player.Health.Value);
-    //            return player.Health.Value;
-    //        }
-    //    }
-
-    //    return -1;
-    //}
-
     [ServerRpc]
-    private void EndGameServerRpc()
+    private void EndGameServerRpc() //moves back to lobby scene at the end of the EndCountdown coroutine
     {
+        NetworkObject[] netObjects = FindObjectsOfType<NetworkObject>();
+        foreach (NetworkObject netObject in netObjects)
+        {
+            Destroy(netObject.gameObject);
+        }
+
         NetworkManager.SceneManager.LoadScene("Lobby", UnityEngine.SceneManagement.LoadSceneMode.Single);
     }
 
-    public IEnumerator EndCountdown()
+    public IEnumerator EndCountdown() //creates a countdown time in which the end game text is displayed for a bit before returning to lobby
     {
         //handling countdown
         int currentTime = endCountdownTime;
@@ -161,6 +141,9 @@ public class GameManager : NetworkBehaviour
             currentTime -= 1;
         }
 
-        EndGameServerRpc();
+        if (IsHost)
+        {
+            EndGameServerRpc();
+        }
     }
 }
