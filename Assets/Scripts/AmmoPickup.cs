@@ -21,8 +21,8 @@ public class AmmoPickup : NetworkBehaviour
         if (collision.gameObject.GetComponent<PlayerController>())
         {
             collision.gameObject.GetComponent<PlayerController>().AddAmmo(ammoValue);
-        }
 
-        spawn.StartCountdown();
+            spawn.StartCountdown();
+        }
     }
 }
