@@ -176,9 +176,11 @@ public class PlayerController : NetworkBehaviour
             }
 
             RequestPositionForMovementServerRpc(moveVect, rot);
+
+            body.rotation = rot; //rotating for self
         }
 
-        if (!IsOwner || IsHost) //actually moving player
+        if (!IsOwner) //moving the player with the server informed information on non-owners
         {
             body.rotation = RotationChange.Value;
         }
