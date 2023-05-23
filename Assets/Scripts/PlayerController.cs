@@ -105,8 +105,24 @@ public class PlayerController : NetworkBehaviour
         GameObject source = collision.gameObject;
 
         //check if other player's bullet OR other kind of damage source
-        if ((source.CompareTag("Bullet") && source.GetComponent<NetworkObject>().OwnerClientId != gameObject.GetComponent<NetworkObject>().OwnerClientId) ||
-            (!source.CompareTag("Bullet") && source.GetComponent<DamageSource>()))
+        if (source.CompareTag("Bullet")) {
+            List<ulong> omitList = source.GetComponent<DamageSource>().omitList;
+
+            bool inOmitList = false;
+            foreach(ulong playerId in omitList)
+            {
+                if (gameObject.GetComponent<NetworkObject>().OwnerClientId == playerId)
+                {
+                    inOmitList = true;
+                }
+            }
+
+            if (!inOmitList)
+            {
+                Damage(source.GetComponent<DamageSource>().damage);
+            }
+        }
+        else if (source.GetComponent<DamageSource>())
         {
             Damage(source.GetComponent<DamageSource>().damage);
         }
@@ -129,13 +145,29 @@ public class PlayerController : NetworkBehaviour
     }
 
     [ServerRpc]
-    private void RequestShootBulletServerRpc(ServerRpcParams rpcParams = default)
+    private void ShootBulletServerRpc(ServerRpcParams rpcParams = default)
     {
         Rigidbody2D newBullet = Instantiate(bulletPrefab, shootPoint.position, shootPoint.rotation);
         newBullet.velocity = transform.right * bulletSpeed;
-        newBullet.gameObject.GetComponent<NetworkObject>().SpawnWithOwnership(rpcParams.Receive.SenderClientId);
+
+        newBullet.gameObject.GetComponent<DamageSource>().omitList.Add(gameObject.GetComponent<NetworkObject>().OwnerClientId);
 
         Ammo.Value -= 1;
+
+        Destroy(newBullet.gameObject, 3);
+
+        ShootBulletClientRpc(shootPoint.position, shootPoint.rotation, transform.right);
+    }
+
+    [ClientRpc]
+    private void ShootBulletClientRpc(Vector3 shootPos, Quaternion shootRot, Vector3 right)
+    {
+        if (IsServer) { return; }
+
+        Rigidbody2D newBullet = Instantiate(bulletPrefab, shootPos, shootRot);
+        newBullet.velocity = transform.right * bulletSpeed;
+
+        newBullet.gameObject.GetComponent<DamageSource>().omitList.Add(gameObject.GetComponent<NetworkObject>().OwnerClientId);
 
         Destroy(newBullet.gameObject, 3);
     }
@@ -171,14 +203,16 @@ public class PlayerController : NetworkBehaviour
 
             if (Input.GetButtonDown("Fire1") && Ammo.Value > 0)
             {
-                RequestShootBulletServerRpc();
+                ShootBulletServerRpc();
                 RequestBlowbackServerRpc();
             }
 
             RequestPositionForMovementServerRpc(moveVect, rot);
+
+            body.rotation = rot; //rotating for self
         }
 
-        if (!IsOwner || IsHost) //actually moving player
+        if (!IsOwner) //moving the player with the server informed information on non-owners
         {
             body.rotation = RotationChange.Value;
         }
